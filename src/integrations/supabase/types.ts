@@ -14,7 +14,433 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      licensees: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          licence_fee: number
+          licence_number: string | null
+          licence_type: string | null
+          name: string
+          notes: string | null
+          source_type: string
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          licence_fee?: number
+          licence_number?: string | null
+          licence_type?: string | null
+          name: string
+          notes?: string | null
+          source_type?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          licence_fee?: number
+          licence_number?: string | null
+          licence_type?: string | null
+          name?: string
+          notes?: string | null
+          source_type?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      members: {
+        Row: {
+          address: string | null
+          bank_account: string | null
+          bank_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          ipi_number: string | null
+          member_code: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ipi_number?: string | null
+          member_code?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          bank_account?: string | null
+          bank_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ipi_number?: string | null
+          member_code?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          member_id: string
+          method: string | null
+          notes: string | null
+          paid_at: string | null
+          pool_id: string | null
+          reference: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          member_id: string
+          method?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          pool_id?: string | null
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          member_id?: string
+          method?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          pool_id?: string | null
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pools: {
+        Row: {
+          created_at: string
+          deductions: number
+          gross_amount: number
+          id: string
+          name: string | null
+          net_amount: number
+          period: string
+          point_value: number
+          source_type: string
+          status: string
+          total_weighted_points: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deductions?: number
+          gross_amount?: number
+          id?: string
+          name?: string | null
+          net_amount?: number
+          period: string
+          point_value?: number
+          source_type?: string
+          status?: string
+          total_weighted_points?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deductions?: number
+          gross_amount?: number
+          id?: string
+          name?: string | null
+          net_amount?: number
+          period?: string
+          point_value?: number
+          source_type?: string
+          status?: string
+          total_weighted_points?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recording_shares: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          percentage: number
+          recording_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          percentage?: number
+          recording_id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          percentage?: number
+          recording_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_shares_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_shares_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "sound_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sound_recordings: {
+        Row: {
+          album: string | null
+          alternate_title: string | null
+          artist: string | null
+          created_at: string
+          duration_seconds: number | null
+          genre: string | null
+          id: string
+          isrc: string | null
+          label: string | null
+          notes: string | null
+          recording_code: string | null
+          release_year: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          album?: string | null
+          alternate_title?: string | null
+          artist?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          genre?: string | null
+          id?: string
+          isrc?: string | null
+          label?: string | null
+          notes?: string | null
+          recording_code?: string | null
+          release_year?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          album?: string | null
+          alternate_title?: string | null
+          artist?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          genre?: string | null
+          id?: string
+          isrc?: string | null
+          label?: string | null
+          notes?: string | null
+          recording_code?: string | null
+          release_year?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      usage_logs: {
+        Row: {
+          allocation: number | null
+          created_at: string
+          diffusion_type: string | null
+          id: string
+          isrc: string | null
+          licensee_id: string | null
+          matched: boolean
+          original_performer: string | null
+          performing_artist: string | null
+          pool_id: string | null
+          quantity: number
+          recording_code: string | null
+          recording_id: string | null
+          song_title: string | null
+          source: string | null
+          updated_at: string
+          usage_code: string | null
+          usage_date: string | null
+          weight: number
+        }
+        Insert: {
+          allocation?: number | null
+          created_at?: string
+          diffusion_type?: string | null
+          id?: string
+          isrc?: string | null
+          licensee_id?: string | null
+          matched?: boolean
+          original_performer?: string | null
+          performing_artist?: string | null
+          pool_id?: string | null
+          quantity?: number
+          recording_code?: string | null
+          recording_id?: string | null
+          song_title?: string | null
+          source?: string | null
+          updated_at?: string
+          usage_code?: string | null
+          usage_date?: string | null
+          weight?: number
+        }
+        Update: {
+          allocation?: number | null
+          created_at?: string
+          diffusion_type?: string | null
+          id?: string
+          isrc?: string | null
+          licensee_id?: string | null
+          matched?: boolean
+          original_performer?: string | null
+          performing_artist?: string | null
+          pool_id?: string | null
+          quantity?: number
+          recording_code?: string | null
+          recording_id?: string | null
+          song_title?: string | null
+          source?: string | null
+          updated_at?: string
+          usage_code?: string | null
+          usage_date?: string | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_logs_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_logs_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_logs_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "sound_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weighting_rules: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          diffusion_type: string | null
+          id: string
+          label: string
+          source_type: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          diffusion_type?: string | null
+          id?: string
+          label: string
+          source_type?: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          diffusion_type?: string | null
+          id?: string
+          label?: string
+          source_type?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
