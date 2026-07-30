@@ -8,7 +8,7 @@ import {
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/members', label: 'Members', icon: Users },
-  { path: '/works', label: 'Works Registry', icon: Music },
+  { path: '/recordings', label: 'Sound Recordings', icon: Music },
   { path: '/licensees', label: 'Licensees', icon: Building2 },
   { path: '/pools', label: 'Pools & Tariffs', icon: Layers },
   { path: '/usage-logs', label: 'Usage Logs', icon: FileText },
@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <Music className="w-4 h-4 text-primary-foreground" />
             </div>
-            {sidebarOpen && <span className="font-heading font-bold text-sidebar-accent-foreground text-lg">RoyaltyPro</span>}
+            {sidebarOpen && <span className="font-heading font-bold text-sidebar-accent-foreground text-lg">TTCO Suite</span>}
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -75,11 +75,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {sidebarOpen ? <X className="w-5 h-5 md:hidden" /> : <Menu className="w-5 h-5" />}
             </button>
             <h1 className="font-heading font-semibold text-lg text-foreground">
-              {navItems.find(n => n.path === location.pathname)?.label || 'RoyaltyPro'}
+              {navItems.find(n => n.path === location.pathname)?.label || 'TTCO Licensing & Royalty Distribution Suite'}
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">Q1 2025</span>
+            <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">TTCO</span>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
