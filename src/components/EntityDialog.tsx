@@ -21,7 +21,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   title: string;
   fields: FieldDef[];
-  initial?: Record<string, unknown> | null;
+  initial?: object | null;
   onSubmit: (values: Record<string, unknown>) => void | Promise<void>;
 }
 
@@ -33,7 +33,7 @@ export default function EntityDialog({ open, onOpenChange, title, fields, initia
     if (!open) return;
     const next: Record<string, string> = {};
     fields.forEach((f) => {
-      const value = initial?.[f.key];
+      const value = (initial as Record<string, unknown> | null | undefined)?.[f.key];
       next[f.key] = value === null || value === undefined ? '' : String(value);
     });
     setValues(next);

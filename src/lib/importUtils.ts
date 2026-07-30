@@ -29,8 +29,8 @@ export function downloadTemplate(filename: string, headers: string[], example?: 
   XLSX.writeFile(book, filename);
 }
 
-export function exportRows(filename: string, rows: Record<string, unknown>[]) {
-  const sheet = XLSX.utils.json_to_sheet(rows);
+export function exportRows(filename: string, rows: unknown[]) {
+  const sheet = XLSX.utils.json_to_sheet(rows as Record<string, unknown>[]);
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, 'Export');
   XLSX.writeFile(book, filename);
