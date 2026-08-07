@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import EntityDialog, { FieldDef } from '@/components/EntityDialog';
 import ImportDialog from '@/components/ImportDialog';
+import BulkEditDialog from '@/components/BulkEditDialog';
+import { BulkBar, SelectTd, SelectTh, SortTh, TablePagination, TableToolbar } from '@/components/DataTableControls';
 import { useTable } from '@/hooks/useTable';
+import { useDataTable } from '@/hooks/useDataTable';
 import { WeightingRule, sourceTypeLabels, sourceTypeOptions } from '@/lib/types';
-import { toNumber, toText } from '@/lib/importUtils';
+import { exportRows, toNumber, toText } from '@/lib/importUtils';
 
 const fields: FieldDef[] = [
   { key: 'code', label: 'Usage code', required: true, placeholder: 'e.g. HDL' },
@@ -17,60 +20,83 @@ const fields: FieldDef[] = [
 ];
 
 export default function WeightingPage() {
-  const { rows, isLoading, insert, insertMany, update, remove } = useTable<WeightingRule>('weighting_rules', 'code', true);
+  const { rows, isLoading, insert, insertMany, update, updateMany, remove, removeMany } = useTable<WeightingRule>('weighting_rules', 'code', true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<WeightingRule | null>(null);
 
-  const grouped = rows.reduce((acc, r) => {
-    (acc[r.source_type] ||= []).push(r);
-    return acc;
-  }, {} as Record<string, WeightingRule[]>);
+  const table = useDataTable<WeightingRule>({
+    rows,
+    searchKeys: ['code', 'label', 'diffusion_type'],
+    initialSort: 'code',
+    filters: [
+      { key: 'source_type', label: 'Source', options: sourceTypeOptions, value: (r) => r.source_type },
+      { key: 'diffusion_type', label: 'Diffusion', options: ['Live', 'DJ', 'Broadcast'], value: (r) => r.diffusion_type },
+      { key: 'active', label: 'State', options: ['Active', 'Inactive'], value: (r) => (r.active ? 'Active' : 'Inactive') },
+    ],
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-muted-foreground text-sm">Weighting codes decide how much each usage type is worth relative to others.</p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-2" />Bulk import</Button>
-          <Button onClick={() => { setEditing(null); setDialogOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add rule</Button>
-        </div>
-      </div>
+      <p className="text-muted-foreground text-sm">Weighting codes decide how much each usage type is worth relative to others.</p>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {!isLoading && !rows.length && (
-        <div className="glass-card p-10 text-center text-muted-foreground text-sm">No weighting rules yet — add your first rule to power the calculation engine.</div>
-      )}
+      <TableToolbar table={table} searchPlaceholder="Search rules…">
+        <Button variant="outline" onClick={() => exportRows('weighting-rules.xlsx', table.filtered)}><Download className="w-4 h-4 mr-2" />Export</Button>
+        <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-2" />Bulk import</Button>
+        <Button onClick={() => { setEditing(null); setDialogOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add rule</Button>
+      </TableToolbar>
 
-      {Object.entries(grouped).map(([type, rules]) => (
-        <div key={type} className="glass-card p-6">
-          <h3 className="font-heading font-semibold text-foreground mb-4">{sourceTypeLabels[type] || type}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {rules.map((r) => (
-              <div key={r.id} className={`p-3 rounded-lg bg-muted/30 border border-border/50 ${r.active ? '' : 'opacity-50'}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <span className="font-mono text-primary text-sm font-bold">{r.code}</span>
-                    <p className="text-xs text-muted-foreground mt-0.5">{r.label}</p>
-                    {r.diffusion_type && <p className="text-[11px] text-muted-foreground mt-1">{r.diffusion_type}</p>}
-                  </div>
-                  <div className="text-2xl font-heading font-bold text-foreground">{Number(r.weight)}</div>
-                </div>
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-2">
-                    <Switch checked={r.active} onCheckedChange={(v) => update.mutate({ id: r.id, values: { active: v } })} />
-                    <span className="text-xs text-muted-foreground">{r.active ? 'Active' : 'Inactive'}</span>
-                  </div>
-                  <div>
+      <BulkBar table={table}>
+        <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)}><Pencil className="w-4 h-4 mr-1" />Edit selected</Button>
+        <Button variant="outline" size="sm" onClick={() => updateMany.mutate({ ids: table.selected, values: { active: true } })}>Activate</Button>
+        <Button variant="outline" size="sm" onClick={() => updateMany.mutate({ ids: table.selected, values: { active: false } })}>Deactivate</Button>
+        <Button variant="destructive" size="sm" onClick={() => { removeMany.mutate(table.selected); table.clearSelection(); }}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
+      </BulkBar>
+
+      <div className="glass-card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[820px]">
+            <thead>
+              <tr className="border-b border-border text-muted-foreground">
+                <SelectTh table={table} />
+                <SortTh table={table} sortKey="code">Code</SortTh>
+                <SortTh table={table} sortKey="label">Description</SortTh>
+                <SortTh table={table} sortKey="source_type">Source</SortTh>
+                <SortTh table={table} sortKey="diffusion_type">Diffusion</SortTh>
+                <SortTh table={table} sortKey="weight" align="right">Weight</SortTh>
+                <SortTh table={table} sortKey="active">State</SortTh>
+                <th className="text-right py-3 px-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">Loading…</td></tr>}
+              {!isLoading && !table.total && <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">No weighting rules found — add your first rule to power the calculation engine.</td></tr>}
+              {table.pageRows.map((r) => (
+                <tr key={r.id} className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${r.active ? '' : 'opacity-60'}`}>
+                  <SelectTd table={table} id={r.id} />
+                  <td className="py-3 px-4 font-mono text-primary font-bold">{r.code}</td>
+                  <td className="py-3 px-4 text-foreground">{r.label}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{sourceTypeLabels[r.source_type] || r.source_type}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{r.diffusion_type || '—'}</td>
+                  <td className="py-3 px-4 text-right font-heading font-bold text-foreground">{Number(r.weight)}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <Switch checked={r.active} onCheckedChange={(v) => update.mutate({ id: r.id, values: { active: v } })} />
+                      <span className="text-xs text-muted-foreground">{r.active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-right whitespace-nowrap">
                     <Button variant="ghost" size="icon" onClick={() => { setEditing(r); setDialogOpen(true); }}><Pencil className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => remove.mutate(r.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ))}
+        <TablePagination table={table} />
+      </div>
 
       <EntityDialog
         open={dialogOpen}
@@ -79,6 +105,14 @@ export default function WeightingPage() {
         fields={fields}
         initial={editing ?? { source_type: 'event', weight: 1 }}
         onSubmit={(values) => editing ? update.mutate({ id: editing.id, values }) : insert.mutate(values)}
+      />
+
+      <BulkEditDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        count={table.selected.length}
+        fields={fields}
+        onApply={(values) => updateMany.mutate({ ids: table.selected, values })}
       />
 
       <ImportDialog
@@ -99,7 +133,7 @@ export default function WeightingPage() {
             diffusion_type: toText(row.diffusion_type),
           };
         }}
-        onImport={(mapped) => insertMany.mutateAsync(mapped)}
+        onImport={(mapped, onProgress) => insertMany.mutateAsync({ values: mapped, onProgress })}
       />
     </div>
   );
