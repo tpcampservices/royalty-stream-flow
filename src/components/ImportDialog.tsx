@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Download, Upload, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { ImportRow, downloadTemplate, parseSpreadsheet } from '@/lib/importUtils';
 import { toast } from '@/hooks/use-toast';
 
@@ -15,7 +16,7 @@ interface Props {
   templateExample?: (string | number)[];
   templateName: string;
   mapRow: (row: ImportRow) => Record<string, unknown> | null;
-  onImport: (rows: Record<string, unknown>[]) => Promise<unknown>;
+  onImport: (rows: Record<string, unknown>[], onProgress: (done: number, total: number) => void) => Promise<unknown>;
 }
 
 export default function ImportDialog({
@@ -24,11 +25,16 @@ export default function ImportDialog({
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [fileName, setFileName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [done, setDone] = useState(0);
 
-  const reset = () => { setRows([]); setFileName(''); };
+  const reset = () => { setRows([]); setFileName(''); setProgress(0); setDone(0); };
 
   const handleFile = async (file?: File) => {
     if (!file) return;
+    setParsing(true);
+    setProgress(0);
     try {
       const parsed = await parseSpreadsheet(file);
       const mapped = parsed.map(mapRow).filter(Boolean) as Record<string, unknown>[];
@@ -40,13 +46,21 @@ export default function ImportDialog({
       setRows(mapped);
     } catch {
       toast({ title: 'Could not read file', description: 'Please upload a valid CSV or Excel file.', variant: 'destructive' });
+    } finally {
+      setParsing(false);
     }
   };
 
   const run = async () => {
     setBusy(true);
+    setProgress(0);
+    setDone(0);
     try {
-      await onImport(rows);
+      await onImport(rows, (completed, total) => {
+        setDone(completed);
+        setProgress(total ? Math.round((completed / total) * 100) : 100);
+      });
+      setProgress(100);
       reset();
       onOpenChange(false);
     } finally {
@@ -57,7 +71,7 @@ export default function ImportDialog({
   const previewKeys = rows.length ? Object.keys(rows[0]).slice(0, 6) : [];
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (busy) return; if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -72,9 +86,20 @@ export default function ImportDialog({
           <div className="border border-dashed border-border rounded-lg p-6 text-center space-y-3">
             <FileSpreadsheet className="w-8 h-8 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Upload a CSV or Excel (.xlsx) file</p>
-            <Input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => handleFile(e.target.files?.[0])} className="max-w-sm mx-auto" />
-            {fileName && <p className="text-xs text-primary">{fileName} — {rows.length} rows ready</p>}
+            <Input type="file" accept=".csv,.xlsx,.xls" disabled={busy} onChange={(e) => handleFile(e.target.files?.[0])} className="max-w-sm mx-auto" />
+            {parsing && <p className="text-xs text-muted-foreground flex items-center justify-center gap-2"><Loader2 className="w-3 h-3 animate-spin" />Reading file…</p>}
+            {fileName && !parsing && <p className="text-xs text-primary">{fileName} — {rows.length} rows ready</p>}
           </div>
+
+          {(busy || progress > 0) && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{busy ? 'Importing…' : 'Import complete'}</span>
+                <span>{done} of {rows.length || done} rows • {progress}%</span>
+              </div>
+              <Progress value={progress} />
+            </div>
+          )}
 
           {rows.length > 0 && (
             <div className="border border-border rounded-lg overflow-x-auto max-h-64">
@@ -95,9 +120,10 @@ export default function ImportDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
           <Button onClick={run} disabled={!rows.length || busy}>
-            <Upload className="w-4 h-4 mr-2" /> Import {rows.length ? `${rows.length} rows` : ''}
+            {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            Import {rows.length ? `${rows.length} rows` : ''}
           </Button>
         </DialogFooter>
       </DialogContent>
