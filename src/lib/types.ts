@@ -1,3 +1,17 @@
+export type AppRole = 'admin' | 'finance' | 'reviewer';
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface OrganizationMembership {
+  organization_id: string;
+  role: AppRole;
+  organization: Organization;
+}
+
 export type SourceType = 'radio' | 'event' | 'venue' | 'shop';
 
 export const sourceTypeLabels: Record<string, string> = {
@@ -8,8 +22,8 @@ export const sourceTypeLabels: Record<string, string> = {
 };
 
 export const sourceTypeOptions = ['radio', 'event', 'venue', 'shop'];
-
 export const memberRoles = ['writer', 'publisher', 'administrator', 'producer', 'performer', 'label'];
+export const appRoles: AppRole[] = ['admin', 'finance', 'reviewer'];
 
 export const licenceTypes = [
   'Blanket Licence',
@@ -22,7 +36,11 @@ export const licenceTypes = [
 
 export const shareRoles = ['Composer', 'Author', 'Arranger', 'Publisher', 'Performer', 'Producer', 'Label'];
 
-export interface Member {
+interface TenantOwned {
+  organization_id: string;
+}
+
+export interface Member extends TenantOwned {
   id: string;
   member_code: string | null;
   name: string;
@@ -31,13 +49,18 @@ export interface Member {
   phone: string | null;
   ipi_number: string | null;
   address: string | null;
-  bank_name: string | null;
-  bank_account: string | null;
   status: string;
   notes: string | null;
 }
 
-export interface SoundRecording {
+export interface MemberPaymentDetails extends TenantOwned {
+  id: string;
+  member_id: string;
+  bank_name: string | null;
+  bank_account: string | null;
+}
+
+export interface SoundRecording extends TenantOwned {
   id: string;
   recording_code: string | null;
   isrc: string | null;
@@ -53,7 +76,7 @@ export interface SoundRecording {
   notes: string | null;
 }
 
-export interface RecordingShare {
+export interface RecordingShare extends TenantOwned {
   id: string;
   recording_id: string;
   member_id: string;
@@ -61,7 +84,7 @@ export interface RecordingShare {
   percentage: number;
 }
 
-export interface Licensee {
+export interface Licensee extends TenantOwned {
   id: string;
   name: string;
   source_type: string;
@@ -77,7 +100,7 @@ export interface Licensee {
   notes: string | null;
 }
 
-export interface WeightingRule {
+export interface WeightingRule extends TenantOwned {
   id: string;
   code: string;
   label: string;
@@ -87,7 +110,7 @@ export interface WeightingRule {
   active: boolean;
 }
 
-export interface Pool {
+export interface Pool extends TenantOwned {
   id: string;
   name: string | null;
   source_type: string;
@@ -100,7 +123,7 @@ export interface Pool {
   point_value: number;
 }
 
-export interface UsageLog {
+export interface UsageLog extends TenantOwned {
   id: string;
   pool_id: string | null;
   licensee_id: string | null;
@@ -120,7 +143,7 @@ export interface UsageLog {
   allocation: number | null;
 }
 
-export interface Payment {
+export interface Payment extends TenantOwned {
   id: string;
   member_id: string;
   pool_id: string | null;
