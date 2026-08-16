@@ -60,8 +60,12 @@ export default function EntityDialog({ open, onOpenChange, title, fields, initia
       if (f.type === 'number') payload[f.key] = value === '' ? null : Number(value);
       else payload[f.key] = value === '' ? null : value;
     });
-    await onSubmit(payload);
-    onOpenChange(false);
+    try {
+      await onSubmit(payload);
+      onOpenChange(false);
+    } catch {
+      // Mutation hooks surface the error. Keep the dialog open for correction.
+    }
   };
 
   return (
@@ -84,7 +88,7 @@ export default function EntityDialog({ open, onOpenChange, title, fields, initia
               ) : (
                 <Input
                   id={f.key}
-                  type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+                  type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : f.type === 'email' ? 'email' : 'text'}
                   value={values[f.key] || ''}
                   maxLength={f.type === 'number' ? undefined : 255}
                   onChange={(e) => set(f.key, e.target.value)}

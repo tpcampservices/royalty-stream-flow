@@ -19,10 +19,11 @@ The route guards improve the user experience, but PostgreSQL grants and RLS are 
 
 1. Apply `supabase/migrations/20260816010000_auth_roles_multitenancy.sql` to the project's backend.
 2. Apply `supabase/migrations/20260816020000_rights_catalog_model.sql` after it. Migration order is mandatory.
-3. In the backend Auth settings, confirm Email authentication is enabled and add the production application URL to the allowed redirect URLs.
-4. Create the first account in the app. After email confirmation, sign in and create the organization; that user becomes its first Admin.
-5. If the database already contains business data, perform the explicit legacy backfill below while using the backend SQL console as an administrator.
-6. Add Finance and Reviewer users from **Team & Roles** after each person has created their own account.
+3. Apply `supabase/migrations/20260816030000_licensing_collections.sql` after the rights/catalog migration.
+4. In the backend Auth settings, confirm Email authentication is enabled and add the production application URL to the allowed redirect URLs.
+5. Create the first account in the app. After email confirmation, sign in and create the organization; that user becomes its first Admin.
+6. If the database already contains business data, perform the explicit legacy backfill below while using the backend SQL console as an administrator.
+7. Add Finance and Reviewer users from **Team & Roles** after each person has created their own account.
 
 ## Existing-data backfill
 

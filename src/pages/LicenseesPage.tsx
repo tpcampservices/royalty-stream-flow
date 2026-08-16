@@ -1,153 +1,196 @@
-import { useState } from 'react';
-import { Plus, Upload, Pencil, Trash2, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useMemo, useState } from 'react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import EntityDialog, { FieldDef } from '@/components/EntityDialog';
-import ImportDialog from '@/components/ImportDialog';
-import BulkEditDialog from '@/components/BulkEditDialog';
-import { BulkBar, SelectTd, SelectTh, SortTh, TablePagination, TableToolbar } from '@/components/DataTableControls';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTable } from '@/hooks/useTable';
-import { useDataTable } from '@/hooks/useDataTable';
-import { Licensee, licenceTypes, money, sourceTypeLabels, sourceTypeOptions } from '@/lib/types';
-import { exportRows, toDate, toNumber, toText } from '@/lib/importUtils';
+import {
+  Currency,
+  Licence,
+  Licensee,
+  Tariff,
+  licenceTypes,
+  money,
+  sourceTypeLabels,
+  sourceTypeOptions,
+} from '@/lib/types';
 
-const fields: FieldDef[] = [
-  { key: 'name', label: 'Licensee name', required: true },
-  { key: 'source_type', label: 'Source type', type: 'select', options: sourceTypeOptions.map((v) => ({ value: v, label: sourceTypeLabels[v] })) },
-  { key: 'licence_type', label: 'Licence held', type: 'select', options: licenceTypes.map((v) => ({ value: v, label: v })) },
-  { key: 'licence_number', label: 'Licence number' },
-  { key: 'status', label: 'Status', type: 'select', options: ['active', 'pending', 'expired', 'suspended'].map((v) => ({ value: v, label: v })) },
-  { key: 'licence_fee', label: 'Licence fee', type: 'number' },
-  { key: 'start_date', label: 'Licence start', type: 'date' },
-  { key: 'end_date', label: 'Licence end', type: 'date' },
-  { key: 'contact_email', label: 'Contact email', type: 'email' },
-  { key: 'contact_phone', label: 'Contact phone' },
-  { key: 'address', label: 'Address' },
-  { key: 'notes', label: 'Notes', type: 'textarea' },
-];
+const today = () => new Date().toISOString().slice(0, 10);
+const statusClass = (status: string) => status === 'active'
+  ? 'bg-success/20 text-success border-0'
+  : status === 'draft' || status === 'pending'
+    ? 'bg-muted text-muted-foreground border-0'
+    : 'bg-destructive/20 text-destructive border-0';
 
 export default function LicenseesPage() {
-  const { rows, isLoading, insert, insertMany, update, updateMany, remove, removeMany } = useTable<Licensee>('licensees', 'name', true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [editing, setEditing] = useState<Licensee | null>(null);
+  const { currentRole } = useAuth();
+  const licensees = useTable<Licensee>('licensees', 'name', true);
+  const tariffs = useTable<Tariff>('tariffs', 'code', true);
+  const licences = useTable<Licence>('licences', 'start_date', false);
+  const { rows: currencies } = useTable<Currency>('currencies', 'code', true);
+  const [licenseeDialog, setLicenseeDialog] = useState(false);
+  const [tariffDialog, setTariffDialog] = useState(false);
+  const [licenceDialog, setLicenceDialog] = useState(false);
+  const [editingLicensee, setEditingLicensee] = useState<Licensee | null>(null);
+  const [editingTariff, setEditingTariff] = useState<Tariff | null>(null);
+  const [editingLicence, setEditingLicence] = useState<Licence | null>(null);
 
-  const table = useDataTable<Licensee>({
-    rows,
-    searchKeys: ['name', 'licence_type', 'licence_number', 'contact_email'],
-    initialSort: 'name',
-    filters: [
-      { key: 'source_type', label: 'Source', options: sourceTypeOptions, value: (l) => l.source_type },
-      { key: 'licence_type', label: 'Licence', options: licenceTypes, value: (l) => l.licence_type },
-      { key: 'status', label: 'Status', options: ['active', 'pending', 'expired', 'suspended'], value: (l) => l.status },
-    ],
-  });
+  const currencyById = useMemo(() => new Map(currencies.map((currency) => [currency.id, currency])), [currencies]);
+  const licenseeById = useMemo(() => new Map(licensees.rows.map((licensee) => [licensee.id, licensee])), [licensees.rows]);
+  const tariffById = useMemo(() => new Map(tariffs.rows.map((tariff) => [tariff.id, tariff])), [tariffs.rows]);
+
+  const licenseeFields: FieldDef[] = [
+    { key: 'name', label: 'Trading name', required: true },
+    { key: 'legal_name', label: 'Legal name' },
+    { key: 'registration_number', label: 'Registration / tax number' },
+    { key: 'source_type', label: 'Business type', type: 'select', options: sourceTypeOptions.map((value) => ({ value, label: sourceTypeLabels[value] })) },
+    { key: 'status', label: 'Status', type: 'select', options: ['active', 'pending', 'suspended', 'inactive'].map((value) => ({ value, label: value })) },
+    { key: 'contact_email', label: 'Contact email', type: 'email' },
+    { key: 'billing_email', label: 'Billing email', type: 'email' },
+    { key: 'contact_phone', label: 'Contact phone' },
+    { key: 'country_code', label: 'Country code', placeholder: 'TT' },
+    { key: 'address', label: 'Address', type: 'textarea' },
+    { key: 'notes', label: 'Notes', type: 'textarea' },
+  ];
+
+  const currencyOptions = currencies.filter((currency) => currency.active).map((currency) => ({
+    value: currency.id,
+    label: `${currency.code} — ${currency.name}`,
+  }));
+  const tariffFields: FieldDef[] = [
+    { key: 'code', label: 'Tariff code', required: true },
+    { key: 'name', label: 'Tariff name', required: true },
+    { key: 'source_type', label: 'Source type', type: 'select', options: sourceTypeOptions.map((value) => ({ value, label: sourceTypeLabels[value] })) },
+    { key: 'charging_basis', label: 'Charging basis', type: 'select', options: [
+      { value: 'flat', label: 'Flat amount' },
+      { value: 'percentage', label: 'Percentage' },
+      { value: 'per_unit', label: 'Per unit' },
+      { value: 'minimum_guarantee', label: 'Minimum guarantee' },
+    ] },
+    { key: 'currency_id', label: 'Currency', type: 'select', options: currencyOptions, required: true },
+    { key: 'flat_amount', label: 'Flat amount', type: 'number' },
+    { key: 'rate_percentage', label: 'Rate percentage', type: 'number' },
+    { key: 'rate_per_unit', label: 'Rate per unit', type: 'number' },
+    { key: 'minimum_fee', label: 'Minimum fee', type: 'number' },
+    { key: 'effective_from', label: 'Effective from', type: 'date', required: true },
+    { key: 'effective_to', label: 'Effective to', type: 'date' },
+    { key: 'active', label: 'Availability', type: 'select', options: [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }] },
+    { key: 'notes', label: 'Notes', type: 'textarea' },
+  ];
+  const licenceFields: FieldDef[] = [
+    { key: 'licensee_id', label: 'Licensee', type: 'select', options: licensees.rows.map((licensee) => ({ value: licensee.id, label: licensee.name })), required: true },
+    { key: 'licence_number', label: 'Licence number', required: true },
+    { key: 'licence_type', label: 'Licence type', type: 'select', options: licenceTypes.map((value) => ({ value, label: value })), required: true },
+    { key: 'tariff_id', label: 'Tariff', type: 'select', options: [{ value: '__none__', label: 'Custom terms (no tariff)' }, ...tariffs.rows.filter((tariff) => tariff.active).map((tariff) => ({ value: tariff.id, label: `${tariff.code} — ${tariff.name}` }))] },
+    { key: 'currency_id', label: 'Billing currency', type: 'select', options: currencyOptions, required: true },
+    { key: 'agreed_fee', label: 'Agreed fee / minimum', type: 'number' },
+    { key: 'billing_frequency', label: 'Billing frequency', type: 'select', options: [
+      { value: 'one_off', label: 'One-off' }, { value: 'monthly', label: 'Monthly' },
+      { value: 'quarterly', label: 'Quarterly' }, { value: 'annually', label: 'Annually' },
+    ] },
+    { key: 'start_date', label: 'Start date', type: 'date', required: true },
+    { key: 'end_date', label: 'End date', type: 'date' },
+    { key: 'status', label: 'Status', type: 'select', options: ['draft', 'active', 'suspended', 'expired', 'terminated'].map((value) => ({ value, label: value })) },
+    { key: 'notes', label: 'Terms / notes', type: 'textarea' },
+  ];
+
+  const tariffPrice = (tariff: Tariff) => {
+    const code = currencyById.get(tariff.currency_id)?.code;
+    if (tariff.charging_basis === 'flat') return money(tariff.flat_amount, code);
+    if (tariff.charging_basis === 'percentage') return `${Number(tariff.rate_percentage || 0)}%`;
+    if (tariff.charging_basis === 'per_unit') return `${money(tariff.rate_per_unit, code)} / unit`;
+    return `Minimum ${money(tariff.minimum_fee, code)}`;
+  };
 
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground text-sm">{rows.length} licensees — total fees {money(rows.reduce((s, l) => s + Number(l.licence_fee), 0))}</p>
-
-      <TableToolbar table={table} searchPlaceholder="Search licensees…">
-        <Button variant="outline" onClick={() => exportRows('licensees.xlsx', table.filtered)}><Download className="w-4 h-4 mr-2" />Export</Button>
-        <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-2" />Bulk import</Button>
-        <Button onClick={() => { setEditing(null); setDialogOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add licensee</Button>
-      </TableToolbar>
-
-      <BulkBar table={table}>
-        <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)}><Pencil className="w-4 h-4 mr-1" />Edit selected</Button>
-        <Button variant="outline" size="sm" onClick={() => updateMany.mutate({ ids: table.selected, values: { status: 'active' } })}>Mark active</Button>
-        <Button variant="outline" size="sm" onClick={() => updateMany.mutate({ ids: table.selected, values: { status: 'expired' } })}>Mark expired</Button>
-        <Button variant="destructive" size="sm" onClick={() => { removeMany.mutate(table.selected); table.clearSelection(); }}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
-      </BulkBar>
-
-      <div className="glass-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[960px]">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <SelectTh table={table} />
-                <SortTh table={table} sortKey="name">Name</SortTh>
-                <SortTh table={table} sortKey="source_type">Type</SortTh>
-                <SortTh table={table} sortKey="licence_type">Licence held</SortTh>
-                <SortTh table={table} sortKey="licence_number">Licence no.</SortTh>
-                <SortTh table={table} sortKey="start_date">Period</SortTh>
-                <SortTh table={table} sortKey="status">Status</SortTh>
-                <SortTh table={table} sortKey="licence_fee" align="right">Fee</SortTh>
-                <th className="text-right py-3 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading && <tr><td colSpan={9} className="py-8 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && !table.total && <tr><td colSpan={9} className="py-8 text-center text-muted-foreground">No licensees found — add one or import in bulk.</td></tr>}
-              {table.pageRows.map((l) => (
-                <tr key={l.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <SelectTd table={table} id={l.id} />
-                  <td className="py-3 px-4 font-medium text-foreground">{l.name}</td>
-                  <td className="py-3 px-4 text-muted-foreground">{sourceTypeLabels[l.source_type] || l.source_type}</td>
-                  <td className="py-3 px-4 text-muted-foreground">{l.licence_type || '—'}</td>
-                  <td className="py-3 px-4 font-mono text-primary text-xs">{l.licence_number || '—'}</td>
-                  <td className="py-3 px-4 text-muted-foreground text-xs">{l.start_date || '—'} → {l.end_date || '—'}</td>
-                  <td className="py-3 px-4">
-                    <Badge variant="secondary" className={l.status === 'active' ? 'bg-success/20 text-success border-0' : 'bg-destructive/20 text-destructive border-0'}>{l.status}</Badge>
-                  </td>
-                  <td className="py-3 px-4 text-right text-foreground font-medium">{money(l.licence_fee)}</td>
-                  <td className="py-3 px-4 text-right whitespace-nowrap">
-                    <Button variant="ghost" size="icon" onClick={() => { setEditing(l); setDialogOpen(true); }}><Pencil className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => remove.mutate(l.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <TablePagination table={table} />
+      <div>
+        <h2 className="font-heading text-xl font-semibold text-foreground">Licensing</h2>
+        <p className="text-sm text-muted-foreground">Manage customers, approved pricing and the licence agreements that connect them.</p>
       </div>
 
-      <EntityDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        title={editing ? 'Edit licensee' : 'Add licensee'}
-        fields={fields}
-        initial={editing ?? { source_type: 'radio', status: 'active', licence_fee: 0 }}
-        onSubmit={(values) => editing ? update.mutate({ id: editing.id, values }) : insert.mutate(values)}
-      />
+      <Tabs defaultValue="licensees" className="space-y-4">
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
+          <TabsTrigger value="licensees">Licensees</TabsTrigger>
+          <TabsTrigger value="tariffs">Tariffs</TabsTrigger>
+          <TabsTrigger value="licences">Licences</TabsTrigger>
+        </TabsList>
 
-      <BulkEditDialog
-        open={bulkOpen}
-        onOpenChange={setBulkOpen}
-        count={table.selected.length}
-        fields={fields}
-        onApply={(values) => updateMany.mutate({ ids: table.selected, values })}
-      />
+        <TabsContent value="licensees" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">{licensees.rows.length} customer records</p>
+            <Button onClick={() => { setEditingLicensee(null); setLicenseeDialog(true); }}><Plus className="mr-2 h-4 w-4" />Add licensee</Button>
+          </div>
+          <div className="glass-card overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead><tr className="border-b border-border text-muted-foreground">
+                <th className="px-4 py-3 text-left">Customer</th><th className="px-4 py-3 text-left">Type</th>
+                <th className="px-4 py-3 text-left">Billing contact</th><th className="px-4 py-3 text-left">Status</th><th className="px-4 py-3 text-right">Actions</th>
+              </tr></thead>
+              <tbody>
+                {licensees.isLoading && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Loading…</td></tr>}
+                {!licensees.isLoading && !licensees.rows.length && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No licensees yet.</td></tr>}
+                {licensees.rows.map((licensee) => <tr key={licensee.id} className="border-b border-border/50">
+                  <td className="px-4 py-3"><span className="font-medium text-foreground">{licensee.name}</span><span className="block text-xs text-muted-foreground">{licensee.legal_name || licensee.registration_number || '—'}</span></td>
+                  <td className="px-4 py-3 text-muted-foreground">{sourceTypeLabels[licensee.source_type] || licensee.source_type}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{licensee.billing_email || licensee.contact_email || '—'}</td>
+                  <td className="px-4 py-3"><Badge variant="secondary" className={statusClass(licensee.status)}>{licensee.status}</Badge></td>
+                  <td className="px-4 py-3 text-right"><Button variant="ghost" size="icon" onClick={() => { setEditingLicensee(licensee); setLicenseeDialog(true); }}><Pencil className="h-4 w-4" /></Button>{currentRole === 'admin' && <Button variant="ghost" size="icon" onClick={() => licensees.remove.mutate(licensee.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
 
-      <ImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        title="Bulk import licensees"
-        description="Include the licence each business actually holds in the licence_type column."
-        templateName="licensees-template.xlsx"
-        templateHeaders={['name', 'source_type', 'licence_type', 'licence_number', 'status', 'licence_fee', 'start_date', 'end_date', 'contact_email', 'contact_phone', 'address']}
-        templateExample={['Caribbean FM 101.5', 'radio', 'Broadcast Licence', 'LIC-2025-001', 'active', 25000, '2025-01-01', '2025-12-31', 'admin@caribbeanfm.tt', '868-000-0000', 'Port of Spain']}
-        mapRow={(row) => {
-          const name = toText(row.name ?? row.licensee ?? row.licensee_name);
-          if (!name) return null;
-          return {
-            name,
-            source_type: (toText(row.source_type ?? row.type) || 'radio').toLowerCase(),
-            licence_type: toText(row.licence_type ?? row.license_type ?? row.licence),
-            licence_number: toText(row.licence_number ?? row.license_number),
-            status: (toText(row.status) || 'active').toLowerCase(),
-            licence_fee: toNumber(row.licence_fee ?? row.license_fee ?? row.fee) ?? 0,
-            start_date: toDate(row.start_date),
-            end_date: toDate(row.end_date ?? row.expiry_date),
-            contact_email: toText(row.contact_email ?? row.email),
-            contact_phone: toText(row.contact_phone ?? row.phone),
-            address: toText(row.address),
-          };
-        }}
-        onImport={(mapped, onProgress) => insertMany.mutateAsync({ values: mapped, onProgress })}
-      />
+        <TabsContent value="tariffs" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Tariffs define approved pricing; agreements may override the fee.</p>
+            <Button disabled={!currencies.length} onClick={() => { setEditingTariff(null); setTariffDialog(true); }}><Plus className="mr-2 h-4 w-4" />Add tariff</Button>
+          </div>
+          {!currencies.length && <div className="glass-card p-4 text-sm text-muted-foreground">Add a currency under Collections & Reconciliation before creating tariffs.</div>}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {tariffs.rows.map((tariff) => <div key={tariff.id} className="stat-card space-y-3">
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs text-primary">{tariff.code}</p><h3 className="font-heading font-semibold text-foreground">{tariff.name}</h3></div><Badge variant="secondary" className={tariff.active ? statusClass('active') : statusClass('inactive')}>{tariff.active ? 'active' : 'inactive'}</Badge></div>
+              <div className="grid grid-cols-2 gap-3 text-sm"><div><span className="block text-muted-foreground">Basis</span><span className="capitalize text-foreground">{tariff.charging_basis.replace(/_/g, ' ')}</span></div><div><span className="block text-muted-foreground">Rate</span><span className="text-foreground">{tariffPrice(tariff)}</span></div></div>
+              <p className="text-xs text-muted-foreground">{sourceTypeLabels[tariff.source_type] || tariff.source_type} • from {tariff.effective_from}{tariff.effective_to ? ` to ${tariff.effective_to}` : ''}</p>
+              <div className="flex justify-end"><Button variant="ghost" size="icon" onClick={() => { setEditingTariff(tariff); setTariffDialog(true); }}><Pencil className="h-4 w-4" /></Button>{currentRole === 'admin' && <Button variant="ghost" size="icon" onClick={() => tariffs.remove.mutate(tariff.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</div>
+            </div>)}
+            {!tariffs.rows.length && <div className="glass-card p-8 text-center text-sm text-muted-foreground md:col-span-2">No tariffs yet.</div>}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="licences" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">{licences.rows.length} licence agreements</p>
+            <Button disabled={!licensees.rows.length || !currencies.length} onClick={() => { setEditingLicence(null); setLicenceDialog(true); }}><Plus className="mr-2 h-4 w-4" />Add licence</Button>
+          </div>
+          <div className="glass-card overflow-x-auto">
+            <table className="w-full min-w-[900px] text-sm">
+              <thead><tr className="border-b border-border text-muted-foreground">
+                <th className="px-4 py-3 text-left">Licence</th><th className="px-4 py-3 text-left">Licensee</th><th className="px-4 py-3 text-left">Tariff</th><th className="px-4 py-3 text-left">Period</th><th className="px-4 py-3 text-right">Fee</th><th className="px-4 py-3 text-left">Status</th><th className="px-4 py-3 text-right">Actions</th>
+              </tr></thead>
+              <tbody>
+                {licences.rows.map((licence) => <tr key={licence.id} className="border-b border-border/50">
+                  <td className="px-4 py-3"><span className="font-mono text-xs text-primary">{licence.licence_number}</span><span className="block text-xs text-muted-foreground">{licence.licence_type}</span></td>
+                  <td className="px-4 py-3 font-medium text-foreground">{licenseeById.get(licence.licensee_id)?.name || 'Unknown'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{licence.tariff_id ? tariffById.get(licence.tariff_id)?.code || 'Unknown' : 'Custom terms'}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{licence.start_date} → {licence.end_date || 'open'}</td>
+                  <td className="px-4 py-3 text-right text-foreground">{licence.agreed_fee === null ? 'Tariff rate' : money(licence.agreed_fee, currencyById.get(licence.currency_id)?.code)}</td>
+                  <td className="px-4 py-3"><Badge variant="secondary" className={statusClass(licence.status)}>{licence.status}</Badge></td>
+                  <td className="px-4 py-3 text-right"><Button variant="ghost" size="icon" onClick={() => { setEditingLicence(licence); setLicenceDialog(true); }}><Pencil className="h-4 w-4" /></Button>{currentRole === 'admin' && <Button variant="ghost" size="icon" onClick={() => licences.remove.mutate(licence.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</td>
+                </tr>)}
+                {!licences.rows.length && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No licence agreements yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <EntityDialog open={licenseeDialog} onOpenChange={setLicenseeDialog} title={editingLicensee ? 'Edit licensee' : 'Add licensee'} fields={licenseeFields} initial={editingLicensee ?? { source_type: 'radio', status: 'active', country_code: 'TT' }} onSubmit={(values) => editingLicensee ? licensees.update.mutate({ id: editingLicensee.id, values }) : licensees.insert.mutate(values)} />
+      <EntityDialog open={tariffDialog} onOpenChange={setTariffDialog} title={editingTariff ? 'Edit tariff' : 'Add tariff'} fields={tariffFields} initial={editingTariff ?? { source_type: 'radio', charging_basis: 'flat', currency_id: currencies.find((currency) => currency.is_base)?.id, flat_amount: 0, minimum_fee: 0, effective_from: today(), active: true }} onSubmit={(values) => { const payload = { ...values, active: values.active === 'true' }; return editingTariff ? tariffs.update.mutate({ id: editingTariff.id, values: payload }) : tariffs.insert.mutate(payload); }} />
+      <EntityDialog open={licenceDialog} onOpenChange={setLicenceDialog} title={editingLicence ? 'Edit licence' : 'Add licence'} fields={licenceFields} initial={editingLicence ? { ...editingLicence, tariff_id: editingLicence.tariff_id || '__none__' } : { tariff_id: '__none__', currency_id: currencies.find((currency) => currency.is_base)?.id, billing_frequency: 'annually', start_date: today(), status: 'draft' }} onSubmit={(values) => { const payload = { ...values, tariff_id: values.tariff_id === '__none__' ? null : values.tariff_id }; return editingLicence ? licences.update.mutate({ id: editingLicence.id, values: payload }) : licences.insert.mutate(payload); }} />
     </div>
   );
 }
