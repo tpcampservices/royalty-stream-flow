@@ -1,12 +1,13 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTable } from '@/hooks/useTable';
-import { Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
+import { Composition, Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
 
 export default function ReportsPage() {
   const { rows: pools } = useTable<Pool>('pools', 'period', true);
   const { rows: logs } = useTable<UsageLog>('usage_logs');
   const { rows: members } = useTable<Member>('members', 'name', true);
   const { rows: recordings } = useTable<SoundRecording>('sound_recordings', 'title', true);
+  const { rows: compositions } = useTable<Composition>('compositions', 'title', true);
   const { rows: payments } = useTable<Payment>('payments');
 
   const poolSummary = pools.map((p) => ({
@@ -37,12 +38,13 @@ export default function ReportsPage() {
           <h3 className="font-heading font-semibold text-foreground mb-4">Key metrics</h3>
           <div className="space-y-4">
             {[
-              { label: 'Total members', value: members.length },
+              { label: 'Rights parties', value: members.length },
+              { label: 'Compositions', value: compositions.length },
               { label: 'Sound recordings', value: recordings.length },
               { label: 'Usage log lines', value: logs.length },
               { label: 'Match rate', value: `${matchRate}%` },
               { label: 'Distribution pools', value: pools.length },
-              { label: 'Paid to members', value: money(payments.filter((p) => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)) },
+              { label: 'Paid to rights parties', value: money(payments.filter((p) => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)) },
               { label: 'Outstanding payments', value: money(payments.filter((p) => p.status !== 'paid').reduce((s, p) => s + Number(p.amount), 0)) },
             ].map((m) => (
               <div key={m.label} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">

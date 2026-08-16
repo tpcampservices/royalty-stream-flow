@@ -11,6 +11,7 @@ import type { AppRole } from '@/lib/types';
 import DashboardPage from '@/pages/DashboardPage';
 import MembersPage from '@/pages/MembersPage';
 import SoundRecordingsPage from '@/pages/SoundRecordingsPage';
+import CompositionsPage from '@/pages/CompositionsPage';
 import LicenseesPage from '@/pages/LicenseesPage';
 import PoolsPage from '@/pages/PoolsPage';
 import UsageLogsPage from '@/pages/UsageLogsPage';
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/unauthorized" element={<ProtectedRoute><UnauthorizedPage /></ProtectedRoute>} />
             <Route path="/" element={<WorkspaceRoute><DashboardPage /></WorkspaceRoute>} />
             <Route path="/members" element={<WorkspaceRoute roles={['admin', 'finance']}><MembersPage /></WorkspaceRoute>} />
+            <Route path="/compositions" element={<WorkspaceRoute roles={['admin', 'reviewer']}><CompositionsPage /></WorkspaceRoute>} />
             <Route path="/recordings" element={<WorkspaceRoute roles={['admin', 'reviewer']}><SoundRecordingsPage /></WorkspaceRoute>} />
             <Route path="/licensees" element={<WorkspaceRoute roles={['admin', 'finance']}><LicenseesPage /></WorkspaceRoute>} />
             <Route path="/pools" element={<WorkspaceRoute roles={['admin', 'finance']}><PoolsPage /></WorkspaceRoute>} />

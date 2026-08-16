@@ -1,6 +1,6 @@
 # Authentication and multi-tenancy rollout
 
-This change adds Supabase email/password authentication, protected application routes, organization-scoped roles, and database-enforced tenant isolation.
+This change adds email/password authentication, protected application routes, organization-scoped roles, and database-enforced tenant isolation on the project's Lovable Cloud or Supabase-compatible backend.
 
 ## Role matrix
 
@@ -9,7 +9,7 @@ This change adds Supabase email/password authentication, protected application r
 | Dashboard and reports | Read | Read | Read |
 | Members, licensees, pools, payments | Create/read/update/delete | Create/read/update | Read through related workflows only |
 | Payment/bank details | Create/read/update/delete | Create/read/update | No access |
-| Recordings, shares, weighting, usage | Create/read/update/delete | Read through reports only | Create/read/update |
+| Compositions, recordings, catalog relationships, weighting, usage | Create/read/update/delete | Read through reports only | Create/read/update |
 | Calculations | Full access | No route access | No route access |
 | Team and roles | Manage | No access | No access |
 
@@ -17,11 +17,12 @@ The route guards improve the user experience, but PostgreSQL grants and RLS are 
 
 ## Deployment sequence
 
-1. Review and apply `supabase/migrations/20260816010000_auth_roles_multitenancy.sql` to the linked Supabase project.
-2. In Supabase Auth settings, confirm Email authentication is enabled and add the production application URL to the allowed redirect URLs.
-3. Create the first account in the app. After email confirmation, sign in and create the organization; that user becomes its first Admin.
-4. If the database already contains business data, perform the explicit legacy backfill below while using the Supabase SQL Editor as a database administrator.
-5. Add Finance and Reviewer users from **Team & Roles** after each person has created their own account.
+1. Apply `supabase/migrations/20260816010000_auth_roles_multitenancy.sql` to the project's backend.
+2. Apply `supabase/migrations/20260816020000_rights_catalog_model.sql` after it. Migration order is mandatory.
+3. In the backend Auth settings, confirm Email authentication is enabled and add the production application URL to the allowed redirect URLs.
+4. Create the first account in the app. After email confirmation, sign in and create the organization; that user becomes its first Admin.
+5. If the database already contains business data, perform the explicit legacy backfill below while using the backend SQL console as an administrator.
+6. Add Finance and Reviewer users from **Team & Roles** after each person has created their own account.
 
 ## Existing-data backfill
 
@@ -39,12 +40,20 @@ After verifying the organization UUID, run the following in dependency order, re
 begin;
 
 update public.members set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.member_roles set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.compositions set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 update public.sound_recordings set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 update public.licensees set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 update public.weighting_rules set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 update public.pools set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 
 update public.recording_shares set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.composition_writers set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.composition_publishers set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.recording_compositions set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.recording_performers set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.recording_producers set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
+update public.recording_rights_holders set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 update public.usage_logs set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 update public.payments set organization_id = 'YOUR_ORGANIZATION_UUID' where organization_id is null;
 update public.member_payment_details details
@@ -59,8 +68,16 @@ Verify nothing remains unassigned:
 
 ```sql
 select 'members' as table_name, count(*) from public.members where organization_id is null
+union all select 'member_roles', count(*) from public.member_roles where organization_id is null
+union all select 'compositions', count(*) from public.compositions where organization_id is null
 union all select 'sound_recordings', count(*) from public.sound_recordings where organization_id is null
 union all select 'recording_shares', count(*) from public.recording_shares where organization_id is null
+union all select 'composition_writers', count(*) from public.composition_writers where organization_id is null
+union all select 'composition_publishers', count(*) from public.composition_publishers where organization_id is null
+union all select 'recording_compositions', count(*) from public.recording_compositions where organization_id is null
+union all select 'recording_performers', count(*) from public.recording_performers where organization_id is null
+union all select 'recording_producers', count(*) from public.recording_producers where organization_id is null
+union all select 'recording_rights_holders', count(*) from public.recording_rights_holders where organization_id is null
 union all select 'licensees', count(*) from public.licensees where organization_id is null
 union all select 'weighting_rules', count(*) from public.weighting_rules where organization_id is null
 union all select 'pools', count(*) from public.pools where organization_id is null

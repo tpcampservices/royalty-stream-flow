@@ -51,13 +51,23 @@ export type Database = {
         member_code: string | null;
         name: string;
         role: string;
+        entity_type: string;
+        legal_name: string | null;
         email: string | null;
         phone: string | null;
         ipi_number: string | null;
+        isni: string | null;
+        ipn_number: string | null;
+        society_code: string | null;
+        country_code: string | null;
         address: string | null;
         status: string;
         notes: string | null;
         updated_at: string;
+      }>;
+      member_roles: Table<TenantFields & {
+        member_id: string;
+        role: string;
       }>;
       member_payment_details: Table<TenantFields & {
         member_id: string;
@@ -85,6 +95,69 @@ export type Database = {
         member_id: string;
         role: string;
         percentage: number;
+      }>;
+      compositions: Table<TenantFields & {
+        work_code: string | null;
+        iswc: string | null;
+        title: string;
+        alternate_title: string | null;
+        work_type: string;
+        language_code: string | null;
+        duration_seconds: number | null;
+        status: string;
+        notes: string | null;
+        updated_at: string;
+      }>;
+      composition_writers: Table<TenantFields & {
+        composition_id: string;
+        member_id: string;
+        writer_role: string;
+        ownership_percentage: number;
+        updated_at: string;
+      }>;
+      composition_publishers: Table<TenantFields & {
+        composition_id: string;
+        member_id: string;
+        publisher_role: string;
+        ownership_percentage: number;
+        collection_percentage: number;
+        territory: string;
+        effective_from: string | null;
+        effective_to: string | null;
+        updated_at: string;
+      }>;
+      recording_compositions: Table<TenantFields & {
+        recording_id: string;
+        composition_id: string;
+        sequence_number: number;
+        share_percentage: number;
+      }>;
+      recording_performers: Table<TenantFields & {
+        recording_id: string;
+        member_id: string;
+        performer_role: string;
+        instrument: string | null;
+        legacy_share_percentage: number | null;
+        updated_at: string;
+      }>;
+      recording_producers: Table<TenantFields & {
+        recording_id: string;
+        member_id: string;
+        producer_role: string;
+        royalty_points: number | null;
+        legacy_share_percentage: number | null;
+        updated_at: string;
+      }>;
+      recording_rights_holders: Table<TenantFields & {
+        recording_id: string;
+        member_id: string;
+        rights_type: string;
+        ownership_percentage: number;
+        territory: string;
+        effective_from: string | null;
+        effective_to: string | null;
+        review_status: string;
+        updated_at: string;
       }>;
       licensees: Table<TenantFields & {
         name: string;
@@ -118,6 +191,7 @@ export type Database = {
         deductions: number;
         net_amount: number;
         status: string;
+        rights_domain: "composition" | "master";
         total_weighted_points: number;
         point_value: number;
         updated_at: string;

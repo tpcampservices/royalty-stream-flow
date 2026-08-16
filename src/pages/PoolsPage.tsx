@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import EntityDialog, { FieldDef } from '@/components/EntityDialog';
 import { useTable } from '@/hooks/useTable';
 import { Pool, money, sourceTypeLabels, sourceTypeOptions } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { humanizeCatalogRole } from '@/lib/catalog';
 
 const fields: FieldDef[] = [
   { key: 'name', label: 'Pool name', required: true },
   { key: 'source_type', label: 'Source type', type: 'select', options: sourceTypeOptions.map((v) => ({ value: v, label: sourceTypeLabels[v] })) },
+  { key: 'rights_domain', label: 'Rights being distributed', type: 'select', options: [{ value: 'composition', label: 'Composition copyright' }, { value: 'master', label: 'Sound recording master' }] },
   { key: 'period', label: 'Period', required: true, placeholder: 'e.g. Q1 2026' },
   { key: 'gross_amount', label: 'Gross collected', type: 'number' },
   { key: 'deductions', label: 'Deductions', type: 'number' },
@@ -15,6 +18,7 @@ const fields: FieldDef[] = [
 ];
 
 export default function PoolsPage() {
+  const { currentRole } = useAuth();
   const { rows, isLoading, insert, update, remove } = useTable<Pool>('pools', 'period', true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Pool | null>(null);
@@ -42,7 +46,7 @@ export default function PoolsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-heading font-semibold text-foreground">{pool.name || sourceTypeLabels[pool.source_type]}</h3>
-                <p className="text-xs text-muted-foreground">{sourceTypeLabels[pool.source_type]} • {pool.period}</p>
+                <p className="text-xs text-muted-foreground">{sourceTypeLabels[pool.source_type]} • {pool.period} • {humanizeCatalogRole(pool.rights_domain)} rights</p>
               </div>
               <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                 pool.status === 'approved' || pool.status === 'paid' ? 'bg-success/20 text-success' :
@@ -59,7 +63,7 @@ export default function PoolsPage() {
             </div>
             <div className="flex justify-end">
               <Button variant="ghost" size="icon" onClick={() => { setEditing(pool); setDialogOpen(true); }}><Pencil className="w-4 h-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => remove.mutate(pool.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+              {currentRole === 'admin' && <Button variant="ghost" size="icon" onClick={() => remove.mutate(pool.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
             </div>
           </div>
         ))}
@@ -70,7 +74,7 @@ export default function PoolsPage() {
         onOpenChange={setDialogOpen}
         title={editing ? 'Edit pool' : 'Add pool'}
         fields={fields}
-        initial={editing ?? { source_type: 'event', status: 'open', gross_amount: 0, deductions: 0 }}
+        initial={editing ?? { source_type: 'event', rights_domain: 'composition', status: 'open', gross_amount: 0, deductions: 0 }}
         onSubmit={save}
       />
     </div>
