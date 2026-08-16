@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTable } from '@/hooks/useTable';
-import { Composition, Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
+import { Collection, Composition, Invoice, Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
 
 export default function ReportsPage() {
   const { rows: pools } = useTable<Pool>('pools', 'period', true);
@@ -9,6 +9,8 @@ export default function ReportsPage() {
   const { rows: recordings } = useTable<SoundRecording>('sound_recordings', 'title', true);
   const { rows: compositions } = useTable<Composition>('compositions', 'title', true);
   const { rows: payments } = useTable<Payment>('payments');
+  const { rows: collections } = useTable<Collection>('collections', 'collection_date', false);
+  const { rows: invoices } = useTable<Invoice>('invoices', 'issue_date', false);
 
   const poolSummary = pools.map((p) => ({
     pool: `${sourceTypeLabels[p.source_type]} ${p.period}`,
@@ -44,6 +46,8 @@ export default function ReportsPage() {
               { label: 'Usage log lines', value: logs.length },
               { label: 'Match rate', value: `${matchRate}%` },
               { label: 'Distribution pools', value: pools.length },
+              { label: 'Cleared incoming collections', value: money(collections.filter((collection) => collection.status === 'cleared').reduce((sum, collection) => sum + Number(collection.base_amount), 0)) },
+              { label: 'Outstanding licence invoices', value: invoices.filter((invoice) => invoice.status !== 'void' && Number(invoice.balance_due) > 0).length },
               { label: 'Paid to rights parties', value: money(payments.filter((p) => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)) },
               { label: 'Outstanding payments', value: money(payments.filter((p) => p.status !== 'paid').reduce((s, p) => s + Number(p.amount), 0)) },
             ].map((m) => (

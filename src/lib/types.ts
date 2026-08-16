@@ -177,6 +177,10 @@ export interface RecordingRightsHolder extends TenantOwned {
 export interface Licensee extends TenantOwned {
   id: string;
   name: string;
+  legal_name: string | null;
+  registration_number: string | null;
+  billing_email: string | null;
+  country_code: string | null;
   source_type: string;
   licence_type: string | null;
   licence_number: string | null;
@@ -187,6 +191,153 @@ export interface Licensee extends TenantOwned {
   address: string | null;
   start_date: string | null;
   end_date: string | null;
+  notes: string | null;
+}
+
+export interface Currency extends TenantOwned {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  decimal_places: number;
+  is_base: boolean;
+  active: boolean;
+}
+
+export interface ExchangeRate extends TenantOwned {
+  id: string;
+  from_currency_id: string;
+  to_currency_id: string;
+  rate: number;
+  effective_date: string;
+  source: string | null;
+}
+
+export interface Tariff extends TenantOwned {
+  id: string;
+  code: string;
+  name: string;
+  source_type: string;
+  charging_basis: 'flat' | 'percentage' | 'per_unit' | 'minimum_guarantee';
+  currency_id: string;
+  flat_amount: number | null;
+  rate_percentage: number | null;
+  rate_per_unit: number | null;
+  minimum_fee: number;
+  effective_from: string;
+  effective_to: string | null;
+  active: boolean;
+  notes: string | null;
+}
+
+export interface Licence extends TenantOwned {
+  id: string;
+  licensee_id: string;
+  tariff_id: string | null;
+  currency_id: string;
+  licence_number: string;
+  licence_type: string;
+  status: 'draft' | 'active' | 'suspended' | 'expired' | 'terminated';
+  start_date: string;
+  end_date: string | null;
+  billing_frequency: 'one_off' | 'monthly' | 'quarterly' | 'annually';
+  agreed_fee: number | null;
+  notes: string | null;
+}
+
+export interface Invoice extends TenantOwned {
+  id: string;
+  licence_id: string;
+  invoice_number: string;
+  issue_date: string;
+  due_date: string;
+  currency_id: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  amount_paid: number;
+  balance_due: number;
+  status: 'draft' | 'issued' | 'part_paid' | 'paid' | 'overdue' | 'void';
+  notes: string | null;
+}
+
+export interface InvoiceLine extends TenantOwned {
+  id: string;
+  invoice_id: string;
+  tariff_id: string | null;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  tax_rate: number;
+  line_subtotal: number;
+  tax_amount: number;
+  line_total: number;
+}
+
+export interface Collection extends TenantOwned {
+  id: string;
+  licensee_id: string;
+  collection_date: string;
+  amount: number;
+  currency_id: string;
+  exchange_rate_to_base: number;
+  base_amount: number;
+  method: string;
+  reference: string | null;
+  status: 'pending' | 'cleared' | 'reversed';
+  notes: string | null;
+}
+
+export interface CollectionAllocation extends TenantOwned {
+  id: string;
+  collection_id: string;
+  invoice_id: string;
+  collection_amount: number;
+  invoice_amount: number;
+  exchange_rate: number;
+}
+
+export interface Receipt extends TenantOwned {
+  id: string;
+  collection_id: string;
+  receipt_number: string;
+  issued_at: string;
+  status: 'issued' | 'void';
+  notes: string | null;
+}
+
+export interface PoolDeduction extends TenantOwned {
+  id: string;
+  pool_id: string;
+  category: string;
+  description: string;
+  amount: number;
+  currency_id: string;
+  exchange_rate_to_base: number;
+  base_amount: number;
+  status: 'draft' | 'approved' | 'rejected';
+  reference: string | null;
+  incurred_date: string;
+  notes: string | null;
+}
+
+export interface PoolCollectionAllocation extends TenantOwned {
+  id: string;
+  collection_id: string;
+  pool_id: string;
+  amount_base: number;
+}
+
+export interface PoolReconciliation extends TenantOwned {
+  id: string;
+  pool_id: string;
+  collections_total: number;
+  deductions_total: number;
+  net_distributable: number;
+  variance: number;
+  status: 'draft' | 'reconciled' | 'locked';
+  reconciled_at: string | null;
+  reconciled_by: string | null;
   notes: string | null;
 }
 
@@ -210,6 +361,7 @@ export interface Pool extends TenantOwned {
   net_amount: number;
   status: string;
   rights_domain: 'composition' | 'master';
+  currency_id: string | null;
   total_weighted_points: number;
   point_value: number;
 }
@@ -239,6 +391,7 @@ export interface Payment extends TenantOwned {
   member_id: string;
   pool_id: string | null;
   amount: number;
+  currency_id: string | null;
   status: string;
   method: string | null;
   reference: string | null;
@@ -246,5 +399,14 @@ export interface Payment extends TenantOwned {
   notes: string | null;
 }
 
-export const money = (value: number | null | undefined) =>
-  `$${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const money = (value: number | null | undefined, currencyCode?: string) => {
+  const amount = Number(value || 0);
+  if (currencyCode) {
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(amount);
+    } catch {
+      // Fall through for incomplete custom currency configuration.
+    }
+  }
+  return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};

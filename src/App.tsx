@@ -13,6 +13,7 @@ import MembersPage from '@/pages/MembersPage';
 import SoundRecordingsPage from '@/pages/SoundRecordingsPage';
 import CompositionsPage from '@/pages/CompositionsPage';
 import LicenseesPage from '@/pages/LicenseesPage';
+import CollectionsPage from '@/pages/CollectionsPage';
 import PoolsPage from '@/pages/PoolsPage';
 import UsageLogsPage from '@/pages/UsageLogsPage';
 import WeightingPage from '@/pages/WeightingPage';
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/compositions" element={<WorkspaceRoute roles={['admin', 'reviewer']}><CompositionsPage /></WorkspaceRoute>} />
             <Route path="/recordings" element={<WorkspaceRoute roles={['admin', 'reviewer']}><SoundRecordingsPage /></WorkspaceRoute>} />
             <Route path="/licensees" element={<WorkspaceRoute roles={['admin', 'finance']}><LicenseesPage /></WorkspaceRoute>} />
+            <Route path="/collections" element={<WorkspaceRoute roles={['admin', 'finance']}><CollectionsPage /></WorkspaceRoute>} />
             <Route path="/pools" element={<WorkspaceRoute roles={['admin', 'finance']}><PoolsPage /></WorkspaceRoute>} />
             <Route path="/usage-logs" element={<WorkspaceRoute roles={['admin', 'reviewer']}><UsageLogsPage /></WorkspaceRoute>} />
             <Route path="/weighting" element={<WorkspaceRoute roles={['admin', 'reviewer']}><WeightingPage /></WorkspaceRoute>} />

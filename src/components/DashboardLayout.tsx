@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Music, Building2, Layers, FileText,
-  Scale, Calculator, GitMerge, CreditCard, BarChart3, Menu, X,
+  Scale, Calculator, GitMerge, CreditCard, BarChart3, Menu, X, Landmark,
   ShieldCheck, LogOut, BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,13 +16,14 @@ const navItems: { path: string; label: string; icon: typeof LayoutDashboard; rol
   { path: '/members', label: 'Rights Parties', icon: Users, roles: ['admin', 'finance'] },
   { path: '/compositions', label: 'Compositions', icon: BookOpen, roles: ['admin', 'reviewer'] },
   { path: '/recordings', label: 'Sound Recordings', icon: Music, roles: ['admin', 'reviewer'] },
-  { path: '/licensees', label: 'Licensees', icon: Building2, roles: ['admin', 'finance'] },
-  { path: '/pools', label: 'Pools & Tariffs', icon: Layers, roles: ['admin', 'finance'] },
+  { path: '/licensees', label: 'Licensing', icon: Building2, roles: ['admin', 'finance'] },
+  { path: '/collections', label: 'Collections & Reconciliation', icon: Landmark, roles: ['admin', 'finance'] },
+  { path: '/pools', label: 'Distribution Pools', icon: Layers, roles: ['admin', 'finance'] },
   { path: '/usage-logs', label: 'Usage Logs', icon: FileText, roles: ['admin', 'reviewer'] },
   { path: '/weighting', label: 'Weighting Engine', icon: Scale, roles: ['admin', 'reviewer'] },
   { path: '/matching', label: 'Matching', icon: GitMerge, roles: ['admin', 'reviewer'] },
   { path: '/calculation', label: 'Calculation', icon: Calculator, roles: ['admin'] },
-  { path: '/payments', label: 'Payments', icon: CreditCard, roles: ['admin', 'finance'] },
+  { path: '/payments', label: 'Royalty Payments', icon: CreditCard, roles: ['admin', 'finance'] },
   { path: '/reports', label: 'Reports', icon: BarChart3, roles: allRoles },
   { path: '/team', label: 'Team & Roles', icon: ShieldCheck, roles: ['admin'] },
 ];

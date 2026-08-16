@@ -1,7 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Users, Music, AlertTriangle, DollarSign, CheckCircle, Clock } from 'lucide-react';
 import { useTable } from '@/hooks/useTable';
-import { Composition, Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
+import { Collection, Composition, Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
 
 const COLORS = ['hsl(239,84%,67%)', 'hsl(142,76%,36%)', 'hsl(38,92%,50%)', 'hsl(199,89%,48%)'];
 
@@ -12,13 +12,15 @@ export default function DashboardPage() {
   const { rows: pools } = useTable<Pool>('pools', 'period', true);
   const { rows: logs } = useTable<UsageLog>('usage_logs');
   const { rows: payments } = useTable<Payment>('payments');
+  const { rows: collections } = useTable<Collection>('collections', 'collection_date', false);
 
-  const totalCollections = pools.reduce((s, p) => s + Number(p.gross_amount), 0);
+  const clearedCollections = collections.filter((collection) => collection.status === 'cleared');
+  const totalCollections = clearedCollections.reduce((sum, collection) => sum + Number(collection.base_amount), 0);
   const unmatched = logs.filter((l) => !l.matched).length;
   const paid = payments.filter((p) => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0);
 
   const stats = [
-    { label: 'Total collections', value: money(totalCollections), icon: DollarSign, note: `${pools.length} pools` },
+    { label: 'Cleared collections', value: money(totalCollections), icon: DollarSign, note: `${clearedCollections.length} incoming receipts` },
     { label: 'Active rights parties', value: String(members.filter((m) => m.status === 'active').length), icon: Users, note: `${members.length} total` },
     { label: 'Sound recordings', value: String(recordings.length), icon: Music, note: `${compositions.length} compositions` },
     { label: 'Unmatched lines', value: String(unmatched), icon: AlertTriangle, note: `${logs.length} usage lines` },

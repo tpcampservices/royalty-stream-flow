@@ -161,6 +161,10 @@ export type Database = {
       }>;
       licensees: Table<TenantFields & {
         name: string;
+        legal_name: string | null;
+        registration_number: string | null;
+        billing_email: string | null;
+        country_code: string | null;
         source_type: string;
         licence_type: string | null;
         licence_number: string | null;
@@ -171,6 +175,141 @@ export type Database = {
         address: string | null;
         start_date: string | null;
         end_date: string | null;
+        notes: string | null;
+        updated_at: string;
+      }>;
+      currencies: Table<TenantFields & {
+        code: string;
+        name: string;
+        symbol: string;
+        decimal_places: number;
+        is_base: boolean;
+        active: boolean;
+        updated_at: string;
+      }>;
+      exchange_rates: Table<TenantFields & {
+        from_currency_id: string;
+        to_currency_id: string;
+        rate: number;
+        effective_date: string;
+        source: string | null;
+        updated_at: string;
+      }>;
+      tariffs: Table<TenantFields & {
+        code: string;
+        name: string;
+        source_type: string;
+        charging_basis: "flat" | "percentage" | "per_unit" | "minimum_guarantee";
+        currency_id: string;
+        flat_amount: number | null;
+        rate_percentage: number | null;
+        rate_per_unit: number | null;
+        minimum_fee: number;
+        effective_from: string;
+        effective_to: string | null;
+        active: boolean;
+        notes: string | null;
+        updated_at: string;
+      }>;
+      licences: Table<TenantFields & {
+        licensee_id: string;
+        tariff_id: string | null;
+        currency_id: string;
+        licence_number: string;
+        licence_type: string;
+        status: "draft" | "active" | "suspended" | "expired" | "terminated";
+        start_date: string;
+        end_date: string | null;
+        billing_frequency: "one_off" | "monthly" | "quarterly" | "annually";
+        agreed_fee: number | null;
+        notes: string | null;
+        updated_at: string;
+      }>;
+      invoices: Table<TenantFields & {
+        licence_id: string;
+        invoice_number: string;
+        issue_date: string;
+        due_date: string;
+        currency_id: string;
+        subtotal: number;
+        tax_amount: number;
+        total_amount: number;
+        amount_paid: number;
+        balance_due: number;
+        status: "draft" | "issued" | "part_paid" | "paid" | "overdue" | "void";
+        notes: string | null;
+        updated_at: string;
+      }>;
+      invoice_lines: Table<TenantFields & {
+        invoice_id: string;
+        tariff_id: string | null;
+        description: string;
+        quantity: number;
+        unit_price: number;
+        tax_rate: number;
+        line_subtotal: number;
+        tax_amount: number;
+        line_total: number;
+        updated_at: string;
+      }>;
+      collections: Table<TenantFields & {
+        licensee_id: string;
+        collection_date: string;
+        amount: number;
+        currency_id: string;
+        exchange_rate_to_base: number;
+        base_amount: number;
+        method: string;
+        reference: string | null;
+        status: "pending" | "cleared" | "reversed";
+        notes: string | null;
+        updated_at: string;
+      }>;
+      collection_allocations: Table<TenantFields & {
+        collection_id: string;
+        invoice_id: string;
+        collection_amount: number;
+        invoice_amount: number;
+        exchange_rate: number;
+        updated_at: string;
+      }>;
+      receipts: Table<TenantFields & {
+        collection_id: string;
+        receipt_number: string;
+        issued_at: string;
+        status: "issued" | "void";
+        notes: string | null;
+        updated_at: string;
+      }>;
+      pool_deductions: Table<TenantFields & {
+        pool_id: string;
+        category: string;
+        description: string;
+        amount: number;
+        currency_id: string;
+        exchange_rate_to_base: number;
+        base_amount: number;
+        status: "draft" | "approved" | "rejected";
+        reference: string | null;
+        incurred_date: string;
+        notes: string | null;
+        updated_at: string;
+      }>;
+      pool_collection_allocations: Table<TenantFields & {
+        collection_id: string;
+        pool_id: string;
+        amount_base: number;
+        updated_at: string;
+      }>;
+      pool_reconciliations: Table<TenantFields & {
+        pool_id: string;
+        collections_total: number;
+        deductions_total: number;
+        net_distributable: number;
+        variance: number;
+        status: "draft" | "reconciled" | "locked";
+        reconciled_at: string | null;
+        reconciled_by: string | null;
         notes: string | null;
         updated_at: string;
       }>;
@@ -192,6 +331,7 @@ export type Database = {
         net_amount: number;
         status: string;
         rights_domain: "composition" | "master";
+        currency_id: string | null;
         total_weighted_points: number;
         point_value: number;
         updated_at: string;
@@ -219,6 +359,7 @@ export type Database = {
         member_id: string;
         pool_id: string | null;
         amount: number;
+        currency_id: string | null;
         status: string;
         method: string | null;
         reference: string | null;
@@ -252,6 +393,10 @@ export type Database = {
       remove_organization_member: {
         Args: { target_organization_id: string; target_user_id: string };
         Returns: null;
+      };
+      reconcile_pool: {
+        Args: { target_pool_id: string; lock_result?: boolean };
+        Returns: string;
       };
     };
     Enums: { app_role: DatabaseAppRole };

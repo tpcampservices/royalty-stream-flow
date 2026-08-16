@@ -46,5 +46,6 @@ Apply migrations in filename order:
 
 1. `20260816010000_auth_roles_multitenancy.sql`
 2. `20260816020000_rights_catalog_model.sql`
+3. `20260816030000_licensing_collections.sql`
 
-Neither migration has been applied merely because it exists in GitHub. Lovable Cloud must execute both migrations before these screens can use the new tables.
+No migration has been applied merely because it exists in GitHub. Lovable Cloud must execute all three migrations before these screens can use the new tables.
