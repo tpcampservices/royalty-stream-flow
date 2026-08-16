@@ -195,6 +195,11 @@ begin
     raise exception 'Only organization admins can add team members' using errcode = '42501';
   end if;
 
+  -- Serialize team changes per organization so last-admin checks cannot race.
+  perform 1 from public.organizations organization
+  where organization.id = target_organization_id
+  for update;
+
   select u.id into target_user_id
   from auth.users u
   where lower(u.email) = lower(trim(member_email))
@@ -235,6 +240,10 @@ begin
   if not public.has_organization_role(target_organization_id, array['admin']::public.app_role[]) then
     raise exception 'Only organization admins can change roles' using errcode = '42501';
   end if;
+
+  perform 1 from public.organizations organization
+  where organization.id = target_organization_id
+  for update;
 
   select membership.role into previous_role
   from public.organization_members membership
@@ -279,6 +288,10 @@ begin
   if not public.has_organization_role(target_organization_id, array['admin']::public.app_role[]) then
     raise exception 'Only organization admins can remove team members' using errcode = '42501';
   end if;
+
+  perform 1 from public.organizations organization
+  where organization.id = target_organization_id
+  for update;
 
   if target_user_id = auth.uid() then
     raise exception 'You cannot remove yourself from an organization';

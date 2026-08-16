@@ -82,26 +82,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data, error }) => {
-      if (!mounted) return;
-      if (error) {
-        setSession(null);
-        setLoading(false);
-        return;
-      }
-
-      setSession(data.session);
+    const initialize = async () => {
       try {
-        await loadMemberships(data.session?.user.id);
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        let verifiedSession = data.session;
+        if (verifiedSession) {
+          const { data: verifiedUser, error: verificationError } = await supabase.auth.getUser();
+          if (verificationError || verifiedUser.user.id !== verifiedSession.user.id) verifiedSession = null;
+        }
+
+        if (!mounted) return;
+        setSession(verifiedSession);
+        await loadMemberships(verifiedSession?.user.id);
       } catch {
         setMemberships([]);
         setCurrentOrganizationIdState(null);
       } finally {
         if (mounted) setLoading(false);
       }
-    });
+    };
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    void initialize();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'INITIAL_SESSION') return;
       setSession(nextSession);
       // Supabase recommends keeping auth callbacks synchronous. Run database reads
       // after the callback returns to avoid blocking another auth operation.
