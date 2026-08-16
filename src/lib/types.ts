@@ -22,7 +22,16 @@ export const sourceTypeLabels: Record<string, string> = {
 };
 
 export const sourceTypeOptions = ['radio', 'event', 'venue', 'shop'];
-export const memberRoles = ['writer', 'publisher', 'administrator', 'producer', 'performer', 'label'];
+export const partyRoles = ['writer', 'publisher', 'administrator', 'performer', 'producer', 'label'] as const;
+export const partyTypes = ['person', 'organization'] as const;
+export const writerRoles = ['composer', 'lyricist', 'author', 'composer_lyricist', 'arranger', 'adapter', 'translator'] as const;
+export const publisherRoles = ['original_publisher', 'administrator', 'sub_publisher'] as const;
+export const performerRoles = ['main_artist', 'featured_artist', 'session_musician', 'background_vocalist', 'conductor', 'ensemble'] as const;
+export const producerRoles = ['producer', 'co_producer', 'executive_producer', 'remixer', 'recording_engineer', 'mixing_engineer', 'mastering_engineer'] as const;
+export const recordingRightsTypes = ['master_owner', 'exclusive_licensee'] as const;
+export const memberRoles = [...partyRoles];
+/** @deprecated The legacy recording_shares table is read-only. */
+export const shareRoles = ['Composer', 'Author', 'Arranger', 'Publisher', 'Performer', 'Producer', 'Label'];
 export const appRoles: AppRole[] = ['admin', 'finance', 'reviewer'];
 
 export const licenceTypes = [
@@ -34,8 +43,6 @@ export const licenceTypes = [
   'Digital / Streaming Licence',
 ];
 
-export const shareRoles = ['Composer', 'Author', 'Arranger', 'Publisher', 'Performer', 'Producer', 'Label'];
-
 interface TenantOwned {
   organization_id: string;
 }
@@ -45,12 +52,24 @@ export interface Member extends TenantOwned {
   member_code: string | null;
   name: string;
   role: string;
+  entity_type: string;
+  legal_name: string | null;
   email: string | null;
   phone: string | null;
   ipi_number: string | null;
+  isni: string | null;
+  ipn_number: string | null;
+  society_code: string | null;
+  country_code: string | null;
   address: string | null;
   status: string;
   notes: string | null;
+}
+
+export interface MemberRole extends TenantOwned {
+  id: string;
+  member_id: string;
+  role: string;
 }
 
 export interface MemberPaymentDetails extends TenantOwned {
@@ -82,6 +101,77 @@ export interface RecordingShare extends TenantOwned {
   member_id: string;
   role: string;
   percentage: number;
+}
+
+export interface Composition extends TenantOwned {
+  id: string;
+  work_code: string | null;
+  iswc: string | null;
+  title: string;
+  alternate_title: string | null;
+  work_type: string;
+  language_code: string | null;
+  duration_seconds: number | null;
+  status: string;
+  notes: string | null;
+}
+
+export interface CompositionWriter extends TenantOwned {
+  id: string;
+  composition_id: string;
+  member_id: string;
+  writer_role: string;
+  ownership_percentage: number;
+}
+
+export interface CompositionPublisher extends TenantOwned {
+  id: string;
+  composition_id: string;
+  member_id: string;
+  publisher_role: string;
+  ownership_percentage: number;
+  collection_percentage: number;
+  territory: string;
+  effective_from: string | null;
+  effective_to: string | null;
+}
+
+export interface RecordingComposition extends TenantOwned {
+  id: string;
+  recording_id: string;
+  composition_id: string;
+  sequence_number: number;
+  share_percentage: number;
+}
+
+export interface RecordingPerformer extends TenantOwned {
+  id: string;
+  recording_id: string;
+  member_id: string;
+  performer_role: string;
+  instrument: string | null;
+  legacy_share_percentage: number | null;
+}
+
+export interface RecordingProducer extends TenantOwned {
+  id: string;
+  recording_id: string;
+  member_id: string;
+  producer_role: string;
+  royalty_points: number | null;
+  legacy_share_percentage: number | null;
+}
+
+export interface RecordingRightsHolder extends TenantOwned {
+  id: string;
+  recording_id: string;
+  member_id: string;
+  rights_type: string;
+  ownership_percentage: number;
+  territory: string;
+  effective_from: string | null;
+  effective_to: string | null;
+  review_status: string;
 }
 
 export interface Licensee extends TenantOwned {
@@ -119,6 +209,7 @@ export interface Pool extends TenantOwned {
   deductions: number;
   net_amount: number;
   status: string;
+  rights_domain: 'composition' | 'master';
   total_weighted_points: number;
   point_value: number;
 }

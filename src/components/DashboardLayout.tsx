@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Music, Building2, Layers, FileText,
   Scale, Calculator, GitMerge, CreditCard, BarChart3, Menu, X,
-  ShieldCheck, LogOut,
+  ShieldCheck, LogOut, BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OrganizationSwitcher from '@/components/OrganizationSwitcher';
@@ -13,7 +13,8 @@ import type { AppRole } from '@/lib/types';
 const allRoles: AppRole[] = ['admin', 'finance', 'reviewer'];
 const navItems: { path: string; label: string; icon: typeof LayoutDashboard; roles: AppRole[] }[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: allRoles },
-  { path: '/members', label: 'Members', icon: Users, roles: ['admin', 'finance'] },
+  { path: '/members', label: 'Rights Parties', icon: Users, roles: ['admin', 'finance'] },
+  { path: '/compositions', label: 'Compositions', icon: BookOpen, roles: ['admin', 'reviewer'] },
   { path: '/recordings', label: 'Sound Recordings', icon: Music, roles: ['admin', 'reviewer'] },
   { path: '/licensees', label: 'Licensees', icon: Building2, roles: ['admin', 'finance'] },
   { path: '/pools', label: 'Pools & Tariffs', icon: Layers, roles: ['admin', 'finance'] },

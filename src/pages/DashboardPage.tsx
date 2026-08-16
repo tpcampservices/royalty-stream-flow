@@ -1,13 +1,14 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Users, Music, AlertTriangle, DollarSign, CheckCircle, Clock } from 'lucide-react';
 import { useTable } from '@/hooks/useTable';
-import { Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
+import { Composition, Member, Payment, Pool, SoundRecording, UsageLog, money, sourceTypeLabels } from '@/lib/types';
 
 const COLORS = ['hsl(239,84%,67%)', 'hsl(142,76%,36%)', 'hsl(38,92%,50%)', 'hsl(199,89%,48%)'];
 
 export default function DashboardPage() {
   const { rows: members } = useTable<Member>('members', 'name', true);
   const { rows: recordings } = useTable<SoundRecording>('sound_recordings', 'title', true);
+  const { rows: compositions } = useTable<Composition>('compositions', 'title', true);
   const { rows: pools } = useTable<Pool>('pools', 'period', true);
   const { rows: logs } = useTable<UsageLog>('usage_logs');
   const { rows: payments } = useTable<Payment>('payments');
@@ -18,8 +19,8 @@ export default function DashboardPage() {
 
   const stats = [
     { label: 'Total collections', value: money(totalCollections), icon: DollarSign, note: `${pools.length} pools` },
-    { label: 'Active members', value: String(members.filter((m) => m.status === 'active').length), icon: Users, note: `${members.length} total` },
-    { label: 'Sound recordings', value: String(recordings.length), icon: Music, note: 'in registry' },
+    { label: 'Active rights parties', value: String(members.filter((m) => m.status === 'active').length), icon: Users, note: `${members.length} total` },
+    { label: 'Sound recordings', value: String(recordings.length), icon: Music, note: `${compositions.length} compositions` },
     { label: 'Unmatched lines', value: String(unmatched), icon: AlertTriangle, note: `${logs.length} usage lines` },
   ];
 
@@ -44,7 +45,7 @@ export default function DashboardPage() {
       {!pools.length && !members.length && (
         <div className="glass-card p-10 text-center space-y-2">
           <h2 className="font-heading font-semibold text-foreground">Welcome to the TTCO suite</h2>
-          <p className="text-sm text-muted-foreground">Start by importing members and sound recordings, then add licensees, usage logs and a distribution pool.</p>
+          <p className="text-sm text-muted-foreground">Start by importing rights parties, compositions and sound recordings, then add licensees, usage logs and a distribution pool.</p>
         </div>
       )}
 

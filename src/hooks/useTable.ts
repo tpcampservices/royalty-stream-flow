@@ -5,9 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 
 type TableName =
   | 'members'
+  | 'member_roles'
   | 'member_payment_details'
+  | 'compositions'
+  | 'composition_writers'
+  | 'composition_publishers'
   | 'sound_recordings'
   | 'recording_shares'
+  | 'recording_compositions'
+  | 'recording_performers'
+  | 'recording_producers'
+  | 'recording_rights_holders'
   | 'licensees'
   | 'weighting_rules'
   | 'pools'
