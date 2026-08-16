@@ -121,7 +121,7 @@ as $$
   );
 $$;
 
-create or replace function public.shares_organization(target_user_id uuid)
+create or replace function public.can_view_profile(target_user_id uuid)
 returns boolean
 language sql
 stable
@@ -134,6 +134,7 @@ as $$
     join public.organization_members theirs
       on theirs.organization_id = mine.organization_id
     where mine.user_id = (select auth.uid())
+      and mine.role = 'admin'
       and theirs.user_id = target_user_id
   );
 $$;
@@ -492,7 +493,7 @@ alter table public.member_payment_details enable row level security;
 
 drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles for select to authenticated
-using (id = (select auth.uid()) or (select public.shares_organization(id)));
+using (id = (select auth.uid()) or (select public.can_view_profile(id)));
 drop policy if exists "profiles_update_self" on public.profiles;
 create policy "profiles_update_self" on public.profiles for update to authenticated
 using (id = (select auth.uid())) with check (id = (select auth.uid()));
@@ -507,7 +508,10 @@ with check ((select public.has_organization_role(id, array['admin']::public.app_
 
 drop policy if exists "organization_members_select" on public.organization_members;
 create policy "organization_members_select" on public.organization_members for select to authenticated
-using ((select public.is_organization_member(organization_id)));
+using (
+  user_id = (select auth.uid())
+  or (select public.has_organization_role(organization_id, array['admin']::public.app_role[]))
+);
 
 -- Tenant members can read ordinary business records. Write permissions are split
 -- by responsibility, while destructive deletes remain admin-only.
@@ -580,7 +584,7 @@ revoke execute on function public.handle_new_user() from public, anon, authentic
 revoke execute on function public.enforce_tenant_integrity() from public, anon, authenticated;
 revoke execute on function public.is_organization_member(uuid) from public, anon;
 revoke execute on function public.has_organization_role(uuid, public.app_role[]) from public, anon;
-revoke execute on function public.shares_organization(uuid) from public, anon;
+revoke execute on function public.can_view_profile(uuid) from public, anon;
 revoke execute on function public.create_organization(text) from public, anon;
 revoke execute on function public.add_organization_member_by_email(uuid, text, public.app_role) from public, anon;
 revoke execute on function public.set_organization_member_role(uuid, uuid, public.app_role) from public, anon;
@@ -588,7 +592,7 @@ revoke execute on function public.remove_organization_member(uuid, uuid) from pu
 
 grant execute on function public.is_organization_member(uuid) to authenticated;
 grant execute on function public.has_organization_role(uuid, public.app_role[]) to authenticated;
-grant execute on function public.shares_organization(uuid) to authenticated;
+grant execute on function public.can_view_profile(uuid) to authenticated;
 grant execute on function public.create_organization(text) to authenticated;
 grant execute on function public.add_organization_member_by_email(uuid, text, public.app_role) to authenticated;
 grant execute on function public.set_organization_member_role(uuid, uuid, public.app_role) to authenticated;

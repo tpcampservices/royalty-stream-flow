@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-type Table<Row extends Record<string, unknown>> = {
+type Table<Row> = {
   Row: Row;
   Insert: Partial<Row>;
   Update: Partial<Row>;
